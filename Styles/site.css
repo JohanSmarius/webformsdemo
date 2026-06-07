@@ -1,0 +1,168 @@
+/* ─── Reset & Base ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f2f5;
+    color: #222;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a { color: #e67e22; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Navbar ───────────────────────────────────────── */
+.navbar {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+
+.navbar-brand { display: flex; align-items: center; gap: .5rem; font-size: 1.25rem; font-weight: 700; }
+.navbar-brand a { color: #fff; }
+.brand-icon { font-size: 1.5rem; }
+
+.nav-links { list-style: none; display: flex; gap: 1.5rem; }
+.nav-links a { color: #ccc; font-weight: 500; transition: color .2s; }
+.nav-links a:hover { color: #e67e22; text-decoration: none; }
+
+/* ─── Layout ───────────────────────────────────────── */
+.container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; flex: 1; }
+
+.page-header { margin-bottom: 1.5rem; }
+.page-header h1 { font-size: 1.75rem; color: #1a1a2e; }
+.page-header p { color: #666; margin-top: .25rem; }
+
+/* ─── Cards ────────────────────────────────────────── */
+.card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-title { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; margin-bottom: 1rem; border-bottom: 2px solid #e67e22; padding-bottom: .5rem; }
+
+/* ─── Dashboard Stats ──────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+
+.stat-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    border-top: 4px solid #e67e22;
+}
+
+.stat-box .stat-value { font-size: 2rem; font-weight: 700; color: #1a1a2e; }
+.stat-box .stat-label { font-size: .85rem; color: #777; margin-top: .25rem; }
+
+.stat-box.win { border-top-color: #27ae60; }
+.stat-box.loss { border-top-color: #e74c3c; }
+.stat-box.draw { border-top-color: #f39c12; }
+
+/* ─── Tables ───────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+th { background: #1a1a2e; color: #fff; padding: .65rem .9rem; text-align: left; font-weight: 600; }
+td { padding: .6rem .9rem; border-bottom: 1px solid #eee; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fef9f4; }
+
+.table-responsive { overflow-x: auto; }
+
+/* ─── Badges ───────────────────────────────────────── */
+.badge { display: inline-block; padding: .2rem .65rem; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+.badge-win { background: #d5f5e3; color: #1e8449; }
+.badge-loss { background: #fde8e8; color: #c0392b; }
+.badge-draw { background: #fef9e7; color: #d68910; }
+.badge-scheduled { background: #eaf0fb; color: #2471a3; }
+
+/* ─── Forms ────────────────────────────────────────── */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+
+.form-group { display: flex; flex-direction: column; gap: .35rem; }
+.form-group label { font-weight: 600; font-size: .9rem; color: #444; }
+.form-group input[type=text],
+.form-group input[type=number],
+.form-group input[type=date],
+.form-group select,
+.form-group textarea {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: .5rem .75rem;
+    font-size: .95rem;
+    transition: border-color .2s;
+    width: 100%;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #e67e22;
+    box-shadow: 0 0 0 3px rgba(230,126,34,.15);
+}
+
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+/* ─── Buttons ──────────────────────────────────────── */
+.btn {
+    display: inline-block;
+    padding: .5rem 1.2rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: .9rem;
+    font-weight: 600;
+    transition: opacity .2s, transform .1s;
+    text-align: center;
+}
+.btn:hover { opacity: .88; transform: translateY(-1px); text-decoration: none; }
+.btn:active { transform: translateY(0); }
+
+.btn-primary { background: #e67e22; color: #fff; }
+.btn-success { background: #27ae60; color: #fff; }
+.btn-danger  { background: #e74c3c; color: #fff; }
+.btn-secondary { background: #7f8c8d; color: #fff; }
+.btn-sm { padding: .3rem .75rem; font-size: .82rem; }
+.btn-actions { display: flex; gap: .5rem; align-items: center; }
+
+/* ─── Alert / Message ──────────────────────────────── */
+.alert { padding: .85rem 1.1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 500; }
+.alert-success { background: #d5f5e3; color: #1a6e3c; border: 1px solid #a9dfbf; }
+.alert-error   { background: #fde8e8; color: #8e1010; border: 1px solid #f5b7b1; }
+
+/* ─── Stats Input Grid (GameDetail) ────────────────── */
+.stats-table input[type=number] {
+    width: 68px;
+    text-align: center;
+    padding: .35rem .4rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: .9rem;
+}
+.stats-table input[type=number]:focus {
+    border-color: #e67e22;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(230,126,34,.2);
+}
+
+/* ─── Footer ───────────────────────────────────────── */
+.footer { background: #1a1a2e; color: #888; text-align: center; padding: 1rem; font-size: .85rem; }
+
+/* ─── Utility ──────────────────────────────────────── */
+.mt-1 { margin-top: .5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.text-muted { color: #999; font-size: .88rem; }
+.text-right { text-align: right; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.section-header h2 { font-size: 1.2rem; color: #1a1a2e; }

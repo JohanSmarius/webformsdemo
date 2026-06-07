@@ -1,0 +1,35 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.Master.cs" Inherits="BasketballScores.SiteMaster" %>
+<!DOCTYPE html>
+<html lang="en">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Basketball Scores</title>
+    <link rel="stylesheet" href="Styles/site.css" />
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server" />
+</head>
+<body>
+    <form id="MainForm" runat="server">
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <span class="brand-icon">&#127936;</span>
+                <a href="Default.aspx">Basketball Scores</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="Default.aspx">Dashboard</a></li>
+                <li><a href="Players.aspx">Players</a></li>
+                <li><a href="Games.aspx">Games</a></li>
+            </ul>
+        </nav>
+
+        <main class="container">
+            <asp:ContentPlaceHolder ID="MainContent" runat="server" />
+        </main>
+
+        <footer class="footer">
+            <p>Basketball Scores &mdash; Season Tracker</p>
+        </footer>
+    </form>
+    <script src="Scripts/site.js"></script>
+</body>
+</html>
