@@ -42,7 +42,7 @@ namespace BasketballScores
             BindGames();
 
             if (editId == 0)
-                Response.Redirect($"GameDetail.aspx?id={savedId}&new=1");
+                Response.Redirect("GameDetail.aspx?id=" + savedId + "&new=1");
         }
 
         protected void btnCancel_Click(object sender, EventArgs e)
@@ -62,8 +62,8 @@ namespace BasketballScores
                 txtDate.Text = g.GameDate.ToString("yyyy-MM-dd");
                 txtOpponent.Text = g.OpponentTeam;
                 txtLocation.Text = g.Location;
-                txtOurScore.Text = g.OurScore?.ToString() ?? "";
-                txtOpponentScore.Text = g.OpponentScore?.ToString() ?? "";
+                txtOurScore.Text = g.OurScore.HasValue ? g.OurScore.Value.ToString() : "";
+                txtOpponentScore.Text = g.OpponentScore.HasValue ? g.OpponentScore.Value.ToString() : "";
                 ddlStatus.SelectedValue = g.IsCompleted ? "1" : "0";
                 txtNotes.Text = g.Notes;
                 litFormTitle.Text = "Edit Game";

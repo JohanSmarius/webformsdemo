@@ -8,7 +8,12 @@ namespace BasketballScores
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (!IsPostBack) BindData();
+            if (!IsPostBack)
+            {
+                Database.Initialize();
+
+                BindData();
+            }
         }
 
         private void BindData()

@@ -7,11 +7,15 @@ namespace BasketballScores
 {
     public partial class GameDetailPage : Page
     {
-        private int GameId => int.Parse(hfGameId.Value);
+        private int GameId
+        {
+            get { return int.Parse(hfGameId.Value); }
+        }
 
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (!int.TryParse(Request.QueryString["id"], out int id) || id <= 0)
+            int id;
+            if (!int.TryParse(Request.QueryString["id"], out id) || id <= 0)
             {
                 Response.Redirect("Games.aspx");
                 return;
@@ -33,14 +37,14 @@ namespace BasketballScores
             var g = Database.GetGame(id);
             if (g == null) { Response.Redirect("Games.aspx"); return; }
 
-            litTitle.Text = $"vs. {g.OpponentTeam}";
-            litSubtitle.Text = $"{g.GameDate:dd MMMM yyyy} &mdash; {g.Location}";
+            litTitle.Text = "vs. " + g.OpponentTeam;
+            litSubtitle.Text = g.GameDate.ToString("dd MMMM yyyy") + " &mdash; " + g.Location;
 
             txtDate.Text = g.GameDate.ToString("yyyy-MM-dd");
             txtOpponent.Text = g.OpponentTeam;
             txtLocation.Text = g.Location;
-            txtOurScore.Text = g.OurScore?.ToString() ?? "";
-            txtOpponentScore.Text = g.OpponentScore?.ToString() ?? "";
+            txtOurScore.Text = g.OurScore.HasValue ? g.OurScore.Value.ToString() : "";
+            txtOpponentScore.Text = g.OpponentScore.HasValue ? g.OpponentScore.Value.ToString() : "";
             ddlStatus.SelectedValue = g.IsCompleted ? "1" : "0";
             txtNotes.Text = g.Notes;
         }
@@ -56,18 +60,19 @@ namespace BasketballScores
             var rows = new List<StatRow>();
             foreach (var p in players)
             {
-                statMap.TryGetValue(p.Id, out var stat);
+                PlayerGameStat stat;
+                statMap.TryGetValue(p.Id, out stat);
                 rows.Add(new StatRow
                 {
                     PlayerId = p.Id,
                     PlayerName = p.Name,
                     JerseyNumber = p.JerseyNumber,
                     Position = p.Position,
-                    Points = stat?.Points ?? 0,
-                    Errors = stat?.Errors ?? 0,
-                    Assists = stat?.Assists ?? 0,
-                    Rebounds = stat?.Rebounds ?? 0,
-                    MinutesPlayed = stat?.MinutesPlayed ?? 0
+                    Points = stat != null ? stat.Points : 0,
+                    Errors = stat != null ? stat.Errors : 0,
+                    Assists = stat != null ? stat.Assists : 0,
+                    Rebounds = stat != null ? stat.Rebounds : 0,
+                    MinutesPlayed = stat != null ? stat.MinutesPlayed : 0
                 });
             }
 
@@ -91,8 +96,8 @@ namespace BasketballScores
             g.OpponentScore = string.IsNullOrWhiteSpace(txtOpponentScore.Text) ? (int?)null : int.Parse(txtOpponentScore.Text);
 
             Database.SaveGame(g);
-            litTitle.Text = $"vs. {g.OpponentTeam}";
-            litSubtitle.Text = $"{g.GameDate:dd MMMM yyyy} &mdash; {g.Location}";
+            litTitle.Text = "vs. " + g.OpponentTeam;
+            litSubtitle.Text = g.GameDate.ToString("dd MMMM yyyy") + " &mdash; " + g.Location;
             ShowMessage("Game updated.", success: true);
         }
 
@@ -108,7 +113,8 @@ namespace BasketballScores
                 var txtReb = (TextBox)item.FindControl("txtRebounds");
                 var txtMin = (TextBox)item.FindControl("txtMinutes");
 
-                if (!int.TryParse(hfPid.Value, out int playerId)) continue;
+                int playerId;
+                if (!int.TryParse(hfPid.Value, out playerId)) continue;
 
                 var stat = new PlayerGameStat
                 {
@@ -127,8 +133,11 @@ namespace BasketballScores
             BindStats(gameId);
         }
 
-        private static int ParseInt(string s) =>
-            int.TryParse(s, out int v) ? Math.Max(0, v) : 0;
+        private static int ParseInt(string s)
+        {
+            int v;
+            return int.TryParse(s, out v) ? Math.Max(0, v) : 0;
+        }
 
         private void ShowMessage(string msg, bool success)
         {

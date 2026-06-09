@@ -5,11 +5,16 @@ namespace BasketballScores
 {
     public class Player
     {
+        public Player()
+        {
+            IsActive = true;
+        }
+
         public int Id { get; set; }
         public string Name { get; set; }
         public int JerseyNumber { get; set; }
         public string Position { get; set; }
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; }
     }
 
     public class Game
@@ -39,7 +44,7 @@ namespace BasketballScores
             get
             {
                 if (!IsCompleted || OurScore == null) return "-";
-                return $"{OurScore} - {OpponentScore}";
+                return OurScore + " - " + OpponentScore;
             }
         }
     }

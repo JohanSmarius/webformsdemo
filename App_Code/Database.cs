@@ -2,22 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
-using System.Data.SQLite;
+using System.Data.SqlClient;
 using System.Web;
 
 namespace BasketballScores
 {
     public static class Database
     {
-        private static string GetDbPath()
+        private static SqlConnection GetConnection()
         {
-            string relativePath = ConfigurationManager.AppSettings["DatabasePath"];
-            return HttpContext.Current.Server.MapPath(relativePath);
-        }
-
-        private static SQLiteConnection GetConnection()
-        {
-            return new SQLiteConnection($"Data Source={GetDbPath()};Version=3;");
+            string connStr = ConfigurationManager.ConnectionStrings["BasketballDB"].ConnectionString;
+            return new SqlConnection(connStr);
         }
 
         public static void Initialize()
@@ -25,40 +20,58 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = @"
-                    CREATE TABLE IF NOT EXISTS Players (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        Name TEXT NOT NULL,
-                        JerseyNumber INTEGER NOT NULL,
-                        Position TEXT,
-                        IsActive INTEGER NOT NULL DEFAULT 1
-                    );
-                    CREATE TABLE IF NOT EXISTS Games (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        GameDate TEXT NOT NULL,
-                        OpponentTeam TEXT NOT NULL,
-                        Location TEXT,
-                        OurScore INTEGER,
-                        OpponentScore INTEGER,
-                        IsCompleted INTEGER NOT NULL DEFAULT 0,
-                        Notes TEXT
-                    );
-                    CREATE TABLE IF NOT EXISTS PlayerGameStats (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        GameId INTEGER NOT NULL,
-                        PlayerId INTEGER NOT NULL,
-                        Points INTEGER NOT NULL DEFAULT 0,
-                        Errors INTEGER NOT NULL DEFAULT 0,
-                        Assists INTEGER NOT NULL DEFAULT 0,
-                        Rebounds INTEGER NOT NULL DEFAULT 0,
-                        MinutesPlayed INTEGER NOT NULL DEFAULT 0,
-                        FOREIGN KEY (GameId) REFERENCES Games(Id),
-                        FOREIGN KEY (PlayerId) REFERENCES Players(Id),
-                        UNIQUE(GameId, PlayerId)
-                    );";
-                cmd.ExecuteNonQuery();
+
+                Execute(conn, @"
+                    IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Players')
+                    BEGIN
+                        CREATE TABLE Players (
+                            Id           INT IDENTITY(1,1) PRIMARY KEY,
+                            Name         NVARCHAR(200)     NOT NULL,
+                            JerseyNumber INT               NOT NULL,
+                            Position     NVARCHAR(50),
+                            IsActive     BIT               NOT NULL DEFAULT 1
+                        )
+                    END");
+
+                Execute(conn, @"
+                    IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Games')
+                    BEGIN
+                        CREATE TABLE Games (
+                            Id            INT IDENTITY(1,1) PRIMARY KEY,
+                            GameDate      DATE              NOT NULL,
+                            OpponentTeam  NVARCHAR(200)     NOT NULL,
+                            Location      NVARCHAR(200),
+                            OurScore      INT,
+                            OpponentScore INT,
+                            IsCompleted   BIT               NOT NULL DEFAULT 0,
+                            Notes         NVARCHAR(MAX)
+                        )
+                    END");
+
+                Execute(conn, @"
+                    IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PlayerGameStats')
+                    BEGIN
+                        CREATE TABLE PlayerGameStats (
+                            Id            INT IDENTITY(1,1) PRIMARY KEY,
+                            GameId        INT NOT NULL,
+                            PlayerId      INT NOT NULL,
+                            Points        INT NOT NULL DEFAULT 0,
+                            Errors        INT NOT NULL DEFAULT 0,
+                            Assists       INT NOT NULL DEFAULT 0,
+                            Rebounds      INT NOT NULL DEFAULT 0,
+                            MinutesPlayed INT NOT NULL DEFAULT 0,
+                            CONSTRAINT FK_PGS_Games   FOREIGN KEY (GameId)   REFERENCES Games(Id),
+                            CONSTRAINT FK_PGS_Players FOREIGN KEY (PlayerId) REFERENCES Players(Id),
+                            CONSTRAINT UC_PlayerGameStats UNIQUE (GameId, PlayerId)
+                        )
+                    END");
             }
+        }
+
+        private static void Execute(SqlConnection conn, string sql)
+        {
+            using (var cmd = new SqlCommand(sql, conn))
+                cmd.ExecuteNonQuery();
         }
 
         // ── Players ──────────────────────────────────────────────────────────
@@ -69,10 +82,11 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = activeOnly
-                    ? "SELECT * FROM Players WHERE IsActive=1 ORDER BY JerseyNumber"
-                    : "SELECT * FROM Players ORDER BY JerseyNumber";
+                var cmd = new SqlCommand(
+                    activeOnly
+                        ? "SELECT * FROM Players WHERE IsActive=1 ORDER BY JerseyNumber"
+                        : "SELECT * FROM Players ORDER BY JerseyNumber",
+                    conn);
                 using (var r = cmd.ExecuteReader())
                     while (r.Read())
                         list.Add(MapPlayer(r));
@@ -85,8 +99,7 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM Players WHERE Id=@id";
+                var cmd = new SqlCommand("SELECT * FROM Players WHERE Id=@id", conn);
                 cmd.Parameters.AddWithValue("@id", id);
                 using (var r = cmd.ExecuteReader())
                     if (r.Read()) return MapPlayer(r);
@@ -99,7 +112,7 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
+                var cmd = new SqlCommand("", conn);
                 if (p.Id == 0)
                 {
                     cmd.CommandText = @"INSERT INTO Players (Name,JerseyNumber,Position,IsActive)
@@ -114,7 +127,7 @@ namespace BasketballScores
                 cmd.Parameters.AddWithValue("@name", p.Name);
                 cmd.Parameters.AddWithValue("@jersey", p.JerseyNumber);
                 cmd.Parameters.AddWithValue("@pos", p.Position ?? "");
-                cmd.Parameters.AddWithValue("@active", p.IsActive ? 1 : 0);
+                cmd.Parameters.AddWithValue("@active", p.IsActive);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -124,8 +137,7 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = "UPDATE Players SET IsActive=0 WHERE Id=@id";
+                var cmd = new SqlCommand("UPDATE Players SET IsActive=0 WHERE Id=@id", conn);
                 cmd.Parameters.AddWithValue("@id", id);
                 cmd.ExecuteNonQuery();
             }
@@ -139,8 +151,7 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM Games ORDER BY GameDate DESC";
+                var cmd = new SqlCommand("SELECT * FROM Games ORDER BY GameDate DESC", conn);
                 using (var r = cmd.ExecuteReader())
                     while (r.Read())
                         list.Add(MapGame(r));
@@ -153,8 +164,7 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM Games WHERE Id=@id";
+                var cmd = new SqlCommand("SELECT * FROM Games WHERE Id=@id", conn);
                 cmd.Parameters.AddWithValue("@id", id);
                 using (var r = cmd.ExecuteReader())
                     if (r.Read()) return MapGame(r);
@@ -167,18 +177,18 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
+                var cmd = new SqlCommand("", conn);
                 if (g.Id == 0)
                 {
                     cmd.CommandText = @"INSERT INTO Games (GameDate,OpponentTeam,Location,OurScore,OpponentScore,IsCompleted,Notes)
                                         VALUES (@date,@opp,@loc,@us,@them,@done,@notes);
-                                        SELECT last_insert_rowid();";
-                    cmd.Parameters.AddWithValue("@date", g.GameDate.ToString("yyyy-MM-dd"));
+                                        SELECT SCOPE_IDENTITY();";
+                    cmd.Parameters.AddWithValue("@date", g.GameDate);
                     cmd.Parameters.AddWithValue("@opp", g.OpponentTeam);
                     cmd.Parameters.AddWithValue("@loc", g.Location ?? "");
                     cmd.Parameters.AddWithValue("@us", g.OurScore.HasValue ? (object)g.OurScore.Value : DBNull.Value);
                     cmd.Parameters.AddWithValue("@them", g.OpponentScore.HasValue ? (object)g.OpponentScore.Value : DBNull.Value);
-                    cmd.Parameters.AddWithValue("@done", g.IsCompleted ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@done", g.IsCompleted);
                     cmd.Parameters.AddWithValue("@notes", g.Notes ?? "");
                     return Convert.ToInt32(cmd.ExecuteScalar());
                 }
@@ -188,12 +198,12 @@ namespace BasketballScores
                                         OurScore=@us,OpponentScore=@them,IsCompleted=@done,Notes=@notes
                                         WHERE Id=@id";
                     cmd.Parameters.AddWithValue("@id", g.Id);
-                    cmd.Parameters.AddWithValue("@date", g.GameDate.ToString("yyyy-MM-dd"));
+                    cmd.Parameters.AddWithValue("@date", g.GameDate);
                     cmd.Parameters.AddWithValue("@opp", g.OpponentTeam);
                     cmd.Parameters.AddWithValue("@loc", g.Location ?? "");
                     cmd.Parameters.AddWithValue("@us", g.OurScore.HasValue ? (object)g.OurScore.Value : DBNull.Value);
                     cmd.Parameters.AddWithValue("@them", g.OpponentScore.HasValue ? (object)g.OpponentScore.Value : DBNull.Value);
-                    cmd.Parameters.AddWithValue("@done", g.IsCompleted ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@done", g.IsCompleted);
                     cmd.Parameters.AddWithValue("@notes", g.Notes ?? "");
                     cmd.ExecuteNonQuery();
                     return g.Id;
@@ -208,8 +218,7 @@ namespace BasketballScores
                 conn.Open();
                 using (var tx = conn.BeginTransaction())
                 {
-                    var cmd = conn.CreateCommand();
-                    cmd.Transaction = tx;
+                    var cmd = new SqlCommand("", conn, tx);
                     cmd.CommandText = "DELETE FROM PlayerGameStats WHERE GameId=@id";
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
@@ -229,13 +238,12 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = @"
+                var cmd = new SqlCommand(@"
                     SELECT s.*, p.Name, p.JerseyNumber
                     FROM PlayerGameStats s
                     JOIN Players p ON s.PlayerId = p.Id
                     WHERE s.GameId=@gid
-                    ORDER BY p.JerseyNumber";
+                    ORDER BY p.JerseyNumber", conn);
                 cmd.Parameters.AddWithValue("@gid", gameId);
                 using (var r = cmd.ExecuteReader())
                     while (r.Read())
@@ -249,16 +257,18 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = @"
-                    INSERT INTO PlayerGameStats (GameId,PlayerId,Points,Errors,Assists,Rebounds,MinutesPlayed)
-                    VALUES (@gid,@pid,@pts,@err,@ast,@reb,@min)
-                    ON CONFLICT(GameId,PlayerId) DO UPDATE SET
-                        Points=excluded.Points,
-                        Errors=excluded.Errors,
-                        Assists=excluded.Assists,
-                        Rebounds=excluded.Rebounds,
-                        MinutesPlayed=excluded.MinutesPlayed";
+                var cmd = new SqlCommand(@"
+                    MERGE PlayerGameStats AS target
+                    USING (VALUES (@gid, @pid, @pts, @err, @ast, @reb, @min))
+                        AS source (GameId, PlayerId, Points, Errors, Assists, Rebounds, MinutesPlayed)
+                    ON target.GameId = source.GameId AND target.PlayerId = source.PlayerId
+                    WHEN MATCHED THEN
+                        UPDATE SET Points=source.Points, Errors=source.Errors, Assists=source.Assists,
+                                   Rebounds=source.Rebounds, MinutesPlayed=source.MinutesPlayed
+                    WHEN NOT MATCHED THEN
+                        INSERT (GameId, PlayerId, Points, Errors, Assists, Rebounds, MinutesPlayed)
+                        VALUES (source.GameId, source.PlayerId, source.Points, source.Errors,
+                                source.Assists, source.Rebounds, source.MinutesPlayed);", conn);
                 cmd.Parameters.AddWithValue("@gid", s.GameId);
                 cmd.Parameters.AddWithValue("@pid", s.PlayerId);
                 cmd.Parameters.AddWithValue("@pts", s.Points);
@@ -276,8 +286,7 @@ namespace BasketballScores
             using (var conn = GetConnection())
             {
                 conn.Open();
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = @"
+                var cmd = new SqlCommand(@"
                     SELECT p.Id, p.Name, p.JerseyNumber, p.Position,
                            COUNT(s.Id) AS GamesPlayed,
                            COALESCE(SUM(s.Points),0) AS TotalPoints,
@@ -285,8 +294,8 @@ namespace BasketballScores
                     FROM Players p
                     LEFT JOIN PlayerGameStats s ON p.Id = s.PlayerId
                     WHERE p.IsActive = 1
-                    GROUP BY p.Id
-                    ORDER BY p.JerseyNumber";
+                    GROUP BY p.Id, p.Name, p.JerseyNumber, p.Position
+                    ORDER BY p.JerseyNumber", conn);
                 using (var r = cmd.ExecuteReader())
                     while (r.Read())
                     {
@@ -310,26 +319,27 @@ namespace BasketballScores
             return list;
         }
 
-        // ── Mappers ──────────────────────────────────────────────────────────
-
-        private static Player MapPlayer(IDataReader r) => new Player
+        private static Player MapPlayer(IDataReader r)
         {
-            Id = r.GetInt32(r.GetOrdinal("Id")),
-            Name = r.GetString(r.GetOrdinal("Name")),
-            JerseyNumber = r.GetInt32(r.GetOrdinal("JerseyNumber")),
-            Position = r.IsDBNull(r.GetOrdinal("Position")) ? "" : r.GetString(r.GetOrdinal("Position")),
-            IsActive = r.GetInt32(r.GetOrdinal("IsActive")) == 1
-        };
+            return new Player
+            {
+                Id = r.GetInt32(r.GetOrdinal("Id")),
+                Name = r.GetString(r.GetOrdinal("Name")),
+                JerseyNumber = r.GetInt32(r.GetOrdinal("JerseyNumber")),
+                Position = r.IsDBNull(r.GetOrdinal("Position")) ? "" : r.GetString(r.GetOrdinal("Position")),
+                IsActive = r.GetBoolean(r.GetOrdinal("IsActive"))
+            };
+        }
 
         private static Game MapGame(IDataReader r)
         {
             var g = new Game
             {
                 Id = r.GetInt32(r.GetOrdinal("Id")),
-                GameDate = DateTime.Parse(r.GetString(r.GetOrdinal("GameDate"))),
+                GameDate = r.GetDateTime(r.GetOrdinal("GameDate")),
                 OpponentTeam = r.GetString(r.GetOrdinal("OpponentTeam")),
                 Location = r.IsDBNull(r.GetOrdinal("Location")) ? "" : r.GetString(r.GetOrdinal("Location")),
-                IsCompleted = r.GetInt32(r.GetOrdinal("IsCompleted")) == 1,
+                IsCompleted = r.GetBoolean(r.GetOrdinal("IsCompleted")),
                 Notes = r.IsDBNull(r.GetOrdinal("Notes")) ? "" : r.GetString(r.GetOrdinal("Notes"))
             };
             int usCol = r.GetOrdinal("OurScore");
@@ -339,18 +349,21 @@ namespace BasketballScores
             return g;
         }
 
-        private static PlayerGameStat MapStat(IDataReader r) => new PlayerGameStat
+        private static PlayerGameStat MapStat(IDataReader r)
         {
-            Id = r.GetInt32(r.GetOrdinal("Id")),
-            GameId = r.GetInt32(r.GetOrdinal("GameId")),
-            PlayerId = r.GetInt32(r.GetOrdinal("PlayerId")),
-            PlayerName = r.GetString(r.GetOrdinal("Name")),
-            JerseyNumber = r.GetInt32(r.GetOrdinal("JerseyNumber")),
-            Points = r.GetInt32(r.GetOrdinal("Points")),
-            Errors = r.GetInt32(r.GetOrdinal("Errors")),
-            Assists = r.GetInt32(r.GetOrdinal("Assists")),
-            Rebounds = r.GetInt32(r.GetOrdinal("Rebounds")),
-            MinutesPlayed = r.GetInt32(r.GetOrdinal("MinutesPlayed"))
-        };
+            return new PlayerGameStat
+            {
+                Id = r.GetInt32(r.GetOrdinal("Id")),
+                GameId = r.GetInt32(r.GetOrdinal("GameId")),
+                PlayerId = r.GetInt32(r.GetOrdinal("PlayerId")),
+                PlayerName = r.GetString(r.GetOrdinal("Name")),
+                JerseyNumber = r.GetInt32(r.GetOrdinal("JerseyNumber")),
+                Points = r.GetInt32(r.GetOrdinal("Points")),
+                Errors = r.GetInt32(r.GetOrdinal("Errors")),
+                Assists = r.GetInt32(r.GetOrdinal("Assists")),
+                Rebounds = r.GetInt32(r.GetOrdinal("Rebounds")),
+                MinutesPlayed = r.GetInt32(r.GetOrdinal("MinutesPlayed"))
+            };
+        }
     }
 }
