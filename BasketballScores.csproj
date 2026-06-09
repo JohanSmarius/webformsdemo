@@ -17,6 +17,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.32" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.32" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.32">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="Default.aspx" />
     <Content Include="Players.aspx" />
     <Content Include="Games.aspx" />
@@ -24,6 +32,10 @@
     <Content Include="Site.Master" />
     <Content Include="Styles\site.css" />
     <Content Include="Scripts\site.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\02-sdk-conversion\progress-details.md" />
+    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\03-data-layer-migration\progress-details.md" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Default.aspx.cs">

@@ -8,6 +8,7 @@ namespace BasketballScores
         public Player()
         {
             IsActive = true;
+            PlayerGameStats = new List<PlayerGameStat>();
         }
 
         public int Id { get; set; }
@@ -15,10 +16,18 @@ namespace BasketballScores
         public int JerseyNumber { get; set; }
         public string Position { get; set; }
         public bool IsActive { get; set; }
+
+        // Navigation property
+        public virtual ICollection<PlayerGameStat> PlayerGameStats { get; set; }
     }
 
     public class Game
     {
+        public Game()
+        {
+            PlayerGameStats = new List<PlayerGameStat>();
+        }
+
         public int Id { get; set; }
         public DateTime GameDate { get; set; }
         public string OpponentTeam { get; set; }
@@ -27,6 +36,9 @@ namespace BasketballScores
         public int? OpponentScore { get; set; }
         public bool IsCompleted { get; set; }
         public string Notes { get; set; }
+
+        // Navigation property
+        public virtual ICollection<PlayerGameStat> PlayerGameStats { get; set; }
 
         public string Result
         {
@@ -54,13 +66,19 @@ namespace BasketballScores
         public int Id { get; set; }
         public int GameId { get; set; }
         public int PlayerId { get; set; }
-        public string PlayerName { get; set; }
-        public int JerseyNumber { get; set; }
         public int Points { get; set; }
         public int Errors { get; set; }
         public int Assists { get; set; }
         public int Rebounds { get; set; }
         public int MinutesPlayed { get; set; }
+
+        // Navigation properties
+        public virtual Game Game { get; set; }
+        public virtual Player Player { get; set; }
+
+        // Denormalized properties for query convenience (not mapped to DB)
+        public string PlayerName { get; set; }
+        public int JerseyNumber { get; set; }
     }
 
     public class PlayerSummary

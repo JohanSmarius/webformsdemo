@@ -23,7 +23,7 @@
 
 ### 03-data-layer-migration
 **Description**: Migrate data access from ADO.NET to EF Core
-**Status**: pending
+**Status**: completed
 **Depends on**: 02-sdk-conversion
 
 ---
