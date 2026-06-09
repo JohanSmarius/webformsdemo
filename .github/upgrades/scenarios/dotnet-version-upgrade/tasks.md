@@ -16,7 +16,7 @@
 
 ### 02-sdk-conversion
 **Description**: Convert project to SDK-style format
-**Status**: pending
+**Status**: completed
 **Depends on**: 01-prerequisites
 
 ---
