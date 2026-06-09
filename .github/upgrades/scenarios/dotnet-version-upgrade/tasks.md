@@ -9,7 +9,7 @@
 
 ### 01-prerequisites
 **Description**: Validate upgrade prerequisites
-**Status**: pending
+**Status**: completed
 **Depends on**: —
 
 ---
