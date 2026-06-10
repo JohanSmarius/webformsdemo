@@ -1,19 +1,32 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.7.11822.327 insiders
+VisualStudioVersion = 18.7.11822.327
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BasketballScores", "BasketballScores.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BasketballScores.Blazor", "BasketballScores.Blazor\BasketballScores.Blazor.csproj", "{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Debug|x64.Build.0 = Debug|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Debug|x86.Build.0 = Debug|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Release|x64.ActiveCfg = Release|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Release|x64.Build.0 = Release|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Release|x86.ActiveCfg = Release|Any CPU
+		{22A78EEF-4F92-44DA-AF00-1E189ACC5EFC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

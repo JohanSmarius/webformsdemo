@@ -12,9 +12,9 @@ namespace BasketballScores
         }
 
         public int Id { get; set; }
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public int JerseyNumber { get; set; }
-        public string Position { get; set; }
+        public required string Position { get; set; }
         public bool IsActive { get; set; }
 
         // Navigation property
@@ -30,12 +30,12 @@ namespace BasketballScores
 
         public int Id { get; set; }
         public DateTime GameDate { get; set; }
-        public string OpponentTeam { get; set; }
-        public string Location { get; set; }
+        public required string OpponentTeam { get; set; }
+        public required string Location { get; set; }
         public int? OurScore { get; set; }
         public int? OpponentScore { get; set; }
         public bool IsCompleted { get; set; }
-        public string Notes { get; set; }
+        public required string Notes { get; set; }
 
         // Navigation property
         public virtual ICollection<PlayerGameStat> PlayerGameStats { get; set; }
@@ -73,20 +73,20 @@ namespace BasketballScores
         public int MinutesPlayed { get; set; }
 
         // Navigation properties
-        public virtual Game Game { get; set; }
-        public virtual Player Player { get; set; }
+        public required virtual Game Game { get; set; }
+        public required virtual Player Player { get; set; }
 
         // Denormalized properties for query convenience (not mapped to DB)
-        public string PlayerName { get; set; }
+        public required string PlayerName { get; set; }
         public int JerseyNumber { get; set; }
     }
 
     public class PlayerSummary
     {
         public int PlayerId { get; set; }
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public int JerseyNumber { get; set; }
-        public string Position { get; set; }
+        public required string Position { get; set; }
         public int GamesPlayed { get; set; }
         public double AvgPoints { get; set; }
         public double AvgErrors { get; set; }

@@ -1,0 +1,217 @@
+@page "/Games"
+@page "/Games.aspx"
+@using Microsoft.EntityFrameworkCore
+@inject NavigationManager Navigation
+@inject BasketballDbContext Db
+
+<PageTitle>Games - Basketball Scores</PageTitle>
+
+<div class="page-header">
+	<h1>Games</h1>
+	<p>Schedule and manage all games.</p>
+</div>
+
+<!-- Message display -->
+@if (!string.IsNullOrEmpty(message))
+{
+	<div class="alert @(messageIsSuccess ? "alert-success" : "alert-danger")">
+		@message
+	</div>
+}
+
+<!-- Add/Edit Game Form -->
+<div class="card">
+	<div class="card-title">@formTitle</div>
+	<EditForm Model="@currentGame" OnValidSubmit="SaveGame">
+		<DataAnnotationsValidator />
+		<div class="form-grid">
+			<div class="form-group">
+				<label>Game Date</label>
+				<InputDate @bind-Value="currentGame.GameDate" class="form-control" />
+				<ValidationMessage For="@(() => currentGame.GameDate)" />
+			</div>
+			<div class="form-group">
+				<label>Opponent Team</label>
+				<InputText @bind-Value="currentGame.OpponentTeam" class="form-control" placeholder="e.g. City Hawks" maxlength="100" />
+				<ValidationMessage For="@(() => currentGame.OpponentTeam)" />
+			</div>
+			<div class="form-group">
+				<label>Location</label>
+				<InputText @bind-Value="currentGame.Location" class="form-control" placeholder="e.g. Home / Away / Arena name" maxlength="200" />
+			</div>
+		</div>
+		<div class="form-grid mt-2">
+			<div class="form-group">
+				<label>Our Score</label>
+				<InputNumber @bind-Value="currentGame.OurScore" class="form-control" placeholder="Leave blank if not played yet" />
+			</div>
+			<div class="form-group">
+				<label>Opponent Score</label>
+				<InputNumber @bind-Value="currentGame.OpponentScore" class="form-control" placeholder="Leave blank if not played yet" />
+			</div>
+			<div class="form-group">
+				<label>Status</label>
+				<InputSelect @bind-Value="currentGame.IsCompleted" class="form-control">
+					<option value="false">Scheduled</option>
+					<option value="true">Completed</option>
+				</InputSelect>
+			</div>
+		</div>
+		<div class="form-grid mt-1">
+			<div class="form-group" style="grid-column: 1 / -1">
+				<label>Notes</label>
+				<InputTextArea @bind-Value="currentGame.Notes" class="form-control" placeholder="Optional game notes..." />
+			</div>
+		</div>
+		<div class="mt-2 btn-actions">
+			<button type="submit" class="btn btn-primary">Save Game</button>
+			@if (isEditMode)
+			{
+				<button type="button" class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+			}
+		</div>
+	</EditForm>
+</div>
+
+<!-- Game List -->
+<div class="card">
+	<div class="card-title">All Games</div>
+	<div class="table-responsive">
+		@if (games.Count == 0)
+		{
+			<p class="text-muted">No games yet. Add your first game above.</p>
+		}
+		else
+		{
+			<table>
+				<tr>
+					<th>Date</th>
+					<th>Opponent</th>
+					<th>Location</th>
+					<th>Score</th>
+					<th>Result</th>
+					<th>Actions</th>
+				</tr>
+				@foreach (var game in games)
+				{
+					<tr>
+						<td>@game.GameDate.ToString("dd MMM yyyy")</td>
+						<td><strong>@game.OpponentTeam</strong></td>
+						<td class="text-muted">@game.Location</td>
+						<td>@game.ScoreDisplay</td>
+						<td><span class="badge badge-@game.Result.ToLower()">@game.Result</span></td>
+						<td>
+							<div class="btn-actions">
+								<a href="/GameDetail/@game.Id" class="btn btn-primary btn-sm">Stats</a>
+								<button class="btn btn-secondary btn-sm" @onclick="() => EditGame(game.Id)">Edit</button>
+								<button class="btn btn-danger btn-sm" @onclick="() => DeleteGame(game.Id)">Delete</button>
+							</div>
+						</td>
+					</tr>
+				}
+			</table>
+		}
+	</div>
+</div>
+
+@code {
+	private List<Game> games = new();
+	private Game currentGame = new() { GameDate = DateTime.Today, OpponentTeam = "", Location = "", Notes = "", IsCompleted = false };
+	private bool isEditMode = false;
+	private string formTitle => isEditMode ? "Edit Game" : "Add New Game";
+	private string? message;
+	private bool messageIsSuccess;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadGames();
+	}
+
+	private async Task LoadGames()
+	{
+		games = await Db.Games
+			.OrderBy(g => g.GameDate)
+			.ToListAsync();
+	}
+
+	private async Task EditGame(int id)
+	{
+		var game = await Db.Games.FindAsync(id);
+		if (game != null)
+		{
+			currentGame = new Game
+			{
+				Id = game.Id,
+				GameDate = game.GameDate,
+				OpponentTeam = game.OpponentTeam,
+				Location = game.Location ?? "",
+				OurScore = game.OurScore,
+				OpponentScore = game.OpponentScore,
+				IsCompleted = game.IsCompleted,
+				Notes = game.Notes ?? ""
+			};
+			isEditMode = true;
+			message = null;
+		}
+	}
+
+	private async Task SaveGame()
+	{
+		// Validate required fields
+		if (string.IsNullOrWhiteSpace(currentGame.OpponentTeam))
+		{
+			message = "Opponent team is required.";
+			messageIsSuccess = false;
+			return;
+		}
+
+		currentGame.OpponentTeam = currentGame.OpponentTeam.Trim();
+		currentGame.Location = currentGame.Location?.Trim();
+		currentGame.Notes = currentGame.Notes?.Trim();
+
+		var isNewGame = !isEditMode;
+		if (isNewGame)
+			Db.Games.Add(currentGame);
+		else
+			Db.Games.Update(currentGame);
+
+		await Db.SaveChangesAsync();
+
+		message = isEditMode ? "Game updated." : "Game added.";
+		messageIsSuccess = true;
+
+		// If this was a new game (IsCompleted and scores entered), redirect to GameDetail
+		if (isNewGame && currentGame.IsCompleted && currentGame.OurScore.HasValue)
+		{
+			Navigation.NavigateTo($"/GameDetail/{currentGame.Id}?new=1");
+			return;
+		}
+
+		CancelEdit();
+		await LoadGames();
+	}
+
+	private async Task DeleteGame(int id)
+	{
+		var game = await Db.Games
+			.Include(g => g.PlayerGameStats)
+			.FirstOrDefaultAsync(g => g.Id == id);
+
+		if (game != null)
+		{
+			Db.Games.Remove(game);
+			await Db.SaveChangesAsync();
+		}
+
+		message = "Game deleted.";
+		messageIsSuccess = true;
+		await LoadGames();
+	}
+
+	private void CancelEdit()
+	{
+		currentGame = new Game { GameDate = DateTime.Today, OpponentTeam = "", Location = "", Notes = "", IsCompleted = false };
+		isEditMode = false;
+		message = null;
+	}
+}

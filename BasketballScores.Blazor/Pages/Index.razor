@@ -1,0 +1,162 @@
+﻿@page "/"
+@page "/Default.aspx"
+@inject BasketballDbContext Db
+
+<PageTitle>Dashboard - Basketball Scores</PageTitle>
+
+<div class="page-header">
+    <h1>Basketball Scores Dashboard</h1>
+</div>
+
+<!-- Stats cards -->
+<div class="stats-grid">
+    <div class="stat-box">
+        <div class="stat-value">@gamesCount</div>
+        <div class="stat-label">Games Played</div>
+    </div>
+    <div class="stat-box win">
+        <div class="stat-value">@winsCount</div>
+        <div class="stat-label">Wins</div>
+    </div>
+    <div class="stat-box loss">
+        <div class="stat-value">@lossesCount</div>
+        <div class="stat-label">Losses</div>
+    </div>
+    <div class="stat-box draw">
+        <div class="stat-value">@drawsCount</div>
+        <div class="stat-label">Draws</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-value">@playersCount</div>
+        <div class="stat-label">Active Players</div>
+    </div>
+</div>
+
+<!-- Recent games -->
+<div class="card">
+    <div class="section-header">
+        <div class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">Recent Games</div>
+        <a href="/Games" class="btn btn-primary btn-sm">All Games</a>
+    </div>
+    <div class="table-responsive mt-2">
+        @if (recentGames.Count == 0)
+        {
+            <p class="text-muted">No games recorded yet.</p>
+        }
+        else
+        {
+            <table>
+                <tr>
+                    <th>Date</th>
+                    <th>Opponent</th>
+                    <th>Location</th>
+                    <th>Score</th>
+                    <th>Result</th>
+                    <th></th>
+                </tr>
+                @foreach (var game in recentGames)
+                {
+                    <tr>
+                        <td>@game.GameDate.ToString("dd MMM yyyy")</td>
+                        <td><strong>@game.OpponentTeam</strong></td>
+                        <td class="text-muted">@game.Location</td>
+                        <td>@game.ScoreDisplay</td>
+                        <td><span class="badge badge-@(game.Result?.ToLower() ?? "")">@game.Result</span></td>
+                        <td><a href="/GameDetail?id=@game.Id" class="btn btn-secondary btn-sm">Details</a></td>
+                    </tr>
+                }
+            </table>
+        }
+    </div>
+</div>
+
+<!-- Top scorers -->
+<div class="card">
+    <div class="section-header">
+        <div class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">Top Scorers</div>
+        <a href="/Players" class="btn btn-primary btn-sm">All Players</a>
+    </div>
+    <div class="table-responsive mt-2">
+        @if (topScorers.Count == 0)
+        {
+            <p class="text-muted">No player stats yet.</p>
+        }
+        else
+        {
+            <table>
+                <tr>
+                    <th>#</th>
+                    <th>Player</th>
+                    <th>Position</th>
+                    <th>Games</th>
+                    <th>Total Pts</th>
+                    <th>Avg Pts</th>
+                    <th>Avg Errors</th>
+                </tr>
+                @foreach (var player in topScorers)
+                {
+                    <tr>
+                        <td>@player.JerseyNumber</td>
+                        <td><strong>@player.Name</strong></td>
+                        <td class="text-muted">@player.Position</td>
+                        <td>@player.GamesPlayed</td>
+                        <td>@player.TotalPoints</td>
+                        <td>@player.AvgPoints</td>
+                        <td>@player.AvgErrors</td>
+                    </tr>
+                }
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private int gamesCount, winsCount, lossesCount, drawsCount, playersCount;
+    private List<Game> recentGames = new();
+    private List<PlayerSummary> topScorers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Run(() =>
+        {
+            // Initialize database
+            Db.Database.EnsureCreated();
+
+            // Get stats
+            var games = Db.Games.OrderBy(g => g.GameDate).Where(g => g.IsCompleted).ToList();
+            gamesCount = games.Count;
+            winsCount = games.Count(g => g.Result == "Win");
+            lossesCount = games.Count(g => g.Result == "Loss");
+            drawsCount = games.Count(g => g.Result == "Draw");
+            playersCount = Db.Players.Where(p => p.IsActive).OrderBy(p => p.JerseyNumber).Count();
+
+            // Get recent games
+            recentGames = Db.Games.OrderBy(g => g.GameDate).Take(5).ToList();
+
+            // Get top scorers
+            topScorers = Db.Players
+                .Where(p => p.IsActive)
+                .Select(p => new
+                {
+                    Player = p,
+                    Stats = p.PlayerGameStats
+                })
+                .ToList()
+                .Select(x => new PlayerSummary
+                {
+                    PlayerId = x.Player.Id,
+                    Name = x.Player.Name,
+                    JerseyNumber = x.Player.JerseyNumber,
+                    Position = x.Player.Position,
+                    GamesPlayed = x.Stats.Count,
+                    AvgPoints = x.Stats.Any() ? x.Stats.Average(s => s.Points) : 0,
+                    AvgErrors = x.Stats.Any() ? x.Stats.Average(s => s.Errors) : 0,
+                    TotalPoints = x.Stats.Sum(s => s.Points),
+                    TotalErrors = x.Stats.Sum(s => s.Errors)
+                })
+                .OrderByDescending(p => p.TotalPoints)
+                .Take(10)
+                .ToList();
+        });
+    }
+}

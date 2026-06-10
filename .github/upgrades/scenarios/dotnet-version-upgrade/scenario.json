@@ -3,13 +3,15 @@
   "operationId": "09513b86-f47f-4394-9e30-3bc66da0a29f",
   "description": "Upgrade .NET projects to newer .NET versions, including guidance on current release status, support lifecycle (LTS/STS), and recommended upgrade targets.",
   "startTime": "2026-06-09T13:34:20.5955301Z",
-  "lastUpdateTime": "2026-06-09T13:51:58.1346874Z",
+  "lastUpdateTime": "2026-06-10T06:30:42.9313975Z",
   "properties": {
     "UpgradeTargetFramework": "net10.0",
     "taskStates": {
       "01-prerequisites": "Completed",
       "02-sdk-conversion": "InProgress",
-      "03-data-layer-migration": "InProgress"
+      "03-data-layer-migration": "InProgress",
+      "04-scaffold-basketballscores-blazor": "Completed",
+      "05-migrate-basketballscores-ui": "InProgress"
     }
   },
   "folderPath": ""

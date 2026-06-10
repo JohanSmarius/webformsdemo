@@ -1,0 +1,284 @@
+@page "/GameDetail/{GameId:int}"
+@page "/GameDetail.aspx"
+@using Microsoft.EntityFrameworkCore
+@inject NavigationManager Navigation
+@inject BasketballDbContext Db
+
+<PageTitle>Game Detail - Basketball Scores</PageTitle>
+
+<div class="page-header">
+	<h1>@pageTitle</h1>
+	<p>@pageSubtitle</p>
+</div>
+
+<!-- Message display -->
+@if (!string.IsNullOrEmpty(message))
+{
+	<div class="alert @(messageIsSuccess ? "alert-success" : "alert-danger")">
+		@message
+	</div>
+}
+
+<!-- Game Info Card -->
+<div class="card">
+	<div class="section-header">
+		<div class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">Game Info</div>
+		<a href="/Games" class="btn btn-secondary btn-sm">&larr; Back to Games</a>
+	</div>
+	<div class="form-grid mt-2">
+		<div class="form-group">
+			<label>Game Date</label>
+			<InputDate @bind-Value="gameInfo.GameDate" class="form-control" />
+		</div>
+		<div class="form-group">
+			<label>Opponent</label>
+			<InputText @bind-Value="gameInfo.OpponentTeam" class="form-control" maxlength="100" />
+		</div>
+		<div class="form-group">
+			<label>Location</label>
+			<InputText @bind-Value="gameInfo.Location" class="form-control" maxlength="200" />
+		</div>
+		<div class="form-group">
+			<label>Our Score</label>
+			<InputNumber @bind-Value="gameInfo.OurScore" class="form-control" />
+		</div>
+		<div class="form-group">
+			<label>Opponent Score</label>
+			<InputNumber @bind-Value="gameInfo.OpponentScore" class="form-control" />
+		</div>
+		<div class="form-group">
+			<label>Status</label>
+			<InputSelect @bind-Value="gameInfo.IsCompleted" class="form-control">
+				<option value="false">Scheduled</option>
+				<option value="true">Completed</option>
+			</InputSelect>
+		</div>
+	</div>
+	<div class="form-group mt-1">
+		<label>Notes</label>
+		<InputTextArea @bind-Value="gameInfo.Notes" class="form-control" />
+	</div>
+	<div class="mt-2">
+		<button type="button" class="btn btn-primary" @onclick="UpdateGame">Update Game</button>
+	</div>
+</div>
+
+<!-- Player Stats Card -->
+<div class="card">
+	<div class="card-title">Player Statistics</div>
+	<p class="text-muted" style="margin-bottom:1rem">Enter stats for each player. Points, errors (fouls/turnovers), assists, rebounds, and minutes played.</p>
+
+	@if (playerStats.Count == 0)
+	{
+		<p class="text-muted">No active players found. <a href="/Players">Add players</a> first.</p>
+	}
+	else
+	{
+		<div class="table-responsive">
+			<table class="stats-table">
+				<thead>
+					<tr>
+						<th>#</th>
+						<th>Player</th>
+						<th>Points</th>
+						<th>Errors</th>
+						<th>Assists</th>
+						<th>Rebounds</th>
+						<th>Min</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var stat in playerStats)
+					{
+						<tr>
+							<td><strong>@stat.JerseyNumber</strong></td>
+							<td>@stat.PlayerName</td>
+							<td>
+								<input type="number" @bind="stat.Points" class="stat-input" />
+							</td>
+							<td>
+								<input type="number" @bind="stat.Errors" class="stat-input" />
+							</td>
+							<td>
+								<input type="number" @bind="stat.Assists" class="stat-input" />
+							</td>
+							<td>
+								<input type="number" @bind="stat.Rebounds" class="stat-input" />
+							</td>
+							<td>
+								<input type="number" @bind="stat.MinutesPlayed" class="stat-input" />
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+		<div class="mt-2">
+			<button type="button" class="btn btn-success" @onclick="SaveAllStats">Save All Stats</button>
+		</div>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public int GameId { get; set; }
+
+	[SupplyParameterFromQuery(Name = "id")]
+	public int? QueryId { get; set; }
+
+	[SupplyParameterFromQuery(Name = "new")]
+	public int? IsNew { get; set; }
+
+	private Game gameInfo = new() { GameDate = DateTime.Today, OpponentTeam = "", Location = "", Notes = "", IsCompleted = false };
+	private List<PlayerGameStat> playerStats = new();
+	private string pageTitle = "Game Detail";
+	private string pageSubtitle = "";
+	private string? message;
+	private bool messageIsSuccess;
+
+	protected override async Task OnInitializedAsync()
+	{
+		// Support both route parameter (/GameDetail/5) and query string (/GameDetail.aspx?id=5)
+		var effectiveId = GameId > 0 ? GameId : (QueryId ?? 0);
+
+		if (effectiveId > 0)
+		{
+			await LoadGameDetail(effectiveId);
+		}
+	}
+
+	private async Task LoadGameDetail(int id)
+	{
+		var game = await Db.Games
+			.Include(g => g.PlayerGameStats)
+			.FirstOrDefaultAsync(g => g.Id == id);
+
+		if (game != null)
+		{
+			gameInfo = new Game
+			{
+				Id = game.Id,
+				GameDate = game.GameDate,
+				OpponentTeam = game.OpponentTeam,
+				Location = game.Location ?? "",
+				OurScore = game.OurScore,
+				OpponentScore = game.OpponentScore,
+				IsCompleted = game.IsCompleted,
+				Notes = game.Notes ?? ""
+			};
+
+			pageTitle = $"Game vs {game.OpponentTeam}";
+			pageSubtitle = game.GameDate.ToString("dd MMM yyyy") + (game.Location != null ? $" | {game.Location}" : "");
+
+			await LoadPlayerStats(id, game.PlayerGameStats.ToList());
+
+			if (IsNew == 1)
+			{
+				message = "Game added! Now enter player stats.";
+				messageIsSuccess = true;
+			}
+		}
+	}
+
+	private async Task LoadPlayerStats(int gameId, List<PlayerGameStat> existingStats)
+	{
+		var activePlayers = await Db.Players
+			.Where(p => p.IsActive)
+			.OrderBy(p => p.JerseyNumber)
+			.ToListAsync();
+
+		playerStats = activePlayers.Select(p =>
+		{
+			var existing = existingStats.FirstOrDefault(s => s.PlayerId == p.Id);
+			if (existing != null)
+			{
+				// Use existing stat but update denormalized properties
+				existing.PlayerName = p.Name;
+				existing.JerseyNumber = p.JerseyNumber;
+				return existing;
+			}
+
+			// Create new stat entry for this player
+			return new PlayerGameStat
+			{
+				PlayerId = p.Id,
+				PlayerName = p.Name,
+				JerseyNumber = p.JerseyNumber,
+				GameId = gameId,
+				Points = 0,
+				Errors = 0,
+				Assists = 0,
+				Rebounds = 0,
+				MinutesPlayed = 0,
+				Player = p,
+				Game = gameInfo
+			};
+		}).ToList();
+	}
+
+	private async Task UpdateGame()
+	{
+		if (string.IsNullOrWhiteSpace(gameInfo.OpponentTeam))
+		{
+			message = "Opponent team is required.";
+			messageIsSuccess = false;
+			return;
+		}
+
+		gameInfo.OpponentTeam = gameInfo.OpponentTeam.Trim();
+		gameInfo.Location = gameInfo.Location?.Trim();
+		gameInfo.Notes = gameInfo.Notes?.Trim();
+
+		Db.Games.Update(gameInfo);
+		await Db.SaveChangesAsync();
+
+		message = "Game info updated.";
+		messageIsSuccess = true;
+	}
+
+	private async Task SaveAllStats()
+	{
+		foreach (var stat in playerStats)
+		{
+			var existing = await Db.PlayerGameStats
+				.FirstOrDefaultAsync(ps => ps.GameId == stat.GameId && ps.PlayerId == stat.PlayerId);
+
+			if (existing == null)
+			{
+				var player = stat.Player ?? await Db.Players.FindAsync(stat.PlayerId);
+				if (player == null)
+					continue;
+
+				Db.PlayerGameStats.Add(new PlayerGameStat
+				{
+					GameId = stat.GameId,
+					PlayerId = stat.PlayerId,
+					Points = stat.Points,
+					Errors = stat.Errors,
+					Assists = stat.Assists,
+					Rebounds = stat.Rebounds,
+					MinutesPlayed = stat.MinutesPlayed,
+					PlayerName = stat.PlayerName,
+					Player = player,
+					Game = gameInfo
+				});
+			}
+			else
+			{
+				existing.Points = stat.Points;
+				existing.Errors = stat.Errors;
+				existing.Assists = stat.Assists;
+				existing.Rebounds = stat.Rebounds;
+				existing.MinutesPlayed = stat.MinutesPlayed;
+			}
+		}
+
+		await Db.SaveChangesAsync();
+
+		message = "All player stats saved.";
+		messageIsSuccess = true;
+
+		// Reload to refresh computed values
+		await LoadGameDetail(gameInfo.Id);
+	}
+}

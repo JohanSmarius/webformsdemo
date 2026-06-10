@@ -30,7 +30,7 @@
 
 ### 04-scaffold-basketballscores-blazor
 **Description**: Scaffold new Blazor Server project with YARP proxy
-**Status**: pending
+**Status**: completed
 **Depends on**: 03-data-layer-migration
 
 ---

@@ -1,0 +1,221 @@
+@page "/Players"
+@page "/Players.aspx"
+@using Microsoft.EntityFrameworkCore
+@inject BasketballDbContext Db
+
+<PageTitle>Players - Basketball Scores</PageTitle>
+
+<div class="page-header">
+	<h1>Players</h1>
+</div>
+
+<!-- Message display -->
+@if (!string.IsNullOrEmpty(message))
+{
+	<div class="alert @(messageIsSuccess ? "alert-success" : "alert-danger")">
+		@message
+	</div>
+}
+
+<!-- Add/Edit Player Form -->
+<div class="card">
+	<div class="card-title">@formTitle</div>
+	<EditForm Model="@currentPlayer" OnValidSubmit="SavePlayer">
+		<DataAnnotationsValidator />
+		<div class="form-group">
+			<label for="name">Name</label>
+			<InputText @bind-Value="currentPlayer.Name" class="form-control" placeholder="e.g. Michael Jordan" />
+			<ValidationMessage For="@(() => currentPlayer.Name)" />
+		</div>
+		<div class="form-group">
+			<label for="jersey">Jersey Number</label>
+			<InputNumber @bind-Value="currentPlayer.JerseyNumber" class="form-control" placeholder="e.g. 23" />
+			<ValidationMessage For="@(() => currentPlayer.JerseyNumber)" />
+			@if (currentPlayer.JerseyNumber < 0 || currentPlayer.JerseyNumber > 99)
+			{
+				<span class="text-danger">Must be 0-99.</span>
+			}
+		</div>
+		<div class="form-group">
+			<label for="position">Position</label>
+			<InputSelect @bind-Value="currentPlayer.Position" class="form-control">
+				<option value="">-- Select --</option>
+				<option value="Point Guard (PG)">Point Guard (PG)</option>
+				<option value="Shooting Guard (SG)">Shooting Guard (SG)</option>
+				<option value="Small Forward (SF)">Small Forward (SF)</option>
+				<option value="Power Forward (PF)">Power Forward (PF)</option>
+				<option value="Center (C)">Center (C)</option>
+			</InputSelect>
+		</div>
+		<div class="mt-2 btn-actions">
+			<button type="submit" class="btn btn-primary">Save Player</button>
+			@if (isEditMode)
+			{
+				<button type="button" class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+			}
+		</div>
+	</EditForm>
+</div>
+
+<!-- Player List -->
+<div class="card">
+	<div class="card-title">Roster</div>
+	<div class="table-responsive">
+		@if (players.Count == 0)
+		{
+			<p class="text-muted">No players yet. Add your first player above.</p>
+		}
+		else
+		{
+			<table>
+				<tr>
+					<th>#</th>
+					<th>Name</th>
+					<th>Position</th>
+					<th>Games</th>
+					<th>Avg Points</th>
+					<th>Avg Errors</th>
+					<th>Actions</th>
+				</tr>
+				@foreach (var player in players)
+				{
+					<tr>
+						<td><strong>@player.JerseyNumber</strong></td>
+						<td>@player.Name</td>
+						<td class="text-muted">@player.Position</td>
+						<td>@player.GamesPlayed</td>
+						<td>@player.AvgPoints</td>
+						<td>@player.AvgErrors</td>
+						<td>
+							<div class="btn-actions">
+								<button class="btn btn-secondary btn-sm" @onclick="() => EditPlayer(player.PlayerId)">Edit</button>
+								<button class="btn btn-danger btn-sm" @onclick="() => DeletePlayer(player.PlayerId)">Remove</button>
+							</div>
+						</td>
+					</tr>
+				}
+			</table>
+		}
+	</div>
+</div>
+
+@code {
+	private List<PlayerSummary> players = new();
+	private Player currentPlayer = new() { Name = "", Position = "" };
+	private bool isEditMode = false;
+	private string formTitle => isEditMode ? "Edit Player" : "Add New Player";
+	private string? message;
+	private bool messageIsSuccess;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadPlayers();
+	}
+
+	private async Task LoadPlayers()
+	{
+		players = await Db.Players
+			.Where(p => p.IsActive)
+			.Select(p => new
+			{
+				Player = p,
+				Stats = p.PlayerGameStats
+			})
+			.ToListAsync()
+			.ContinueWith(task =>
+			{
+				return task.Result
+					.Select(x => new PlayerSummary
+					{
+						PlayerId = x.Player.Id,
+						Name = x.Player.Name,
+						JerseyNumber = x.Player.JerseyNumber,
+						Position = x.Player.Position,
+						GamesPlayed = x.Stats.Count,
+						AvgPoints = x.Stats.Any() ? x.Stats.Average(s => s.Points) : 0,
+						AvgErrors = x.Stats.Any() ? x.Stats.Average(s => s.Errors) : 0,
+						TotalPoints = x.Stats.Sum(s => s.Points),
+						TotalErrors = x.Stats.Sum(s => s.Errors)
+					})
+					.OrderBy(s => s.JerseyNumber)
+					.ToList();
+			});
+	}
+
+	private void EditPlayer(int id)
+	{
+		var player = Db.Players.Find(id);
+		if (player != null)
+		{
+			currentPlayer = new Player
+			{
+				Id = player.Id,
+				Name = player.Name,
+				JerseyNumber = player.JerseyNumber,
+				Position = player.Position,
+				IsActive = player.IsActive
+			};
+			isEditMode = true;
+			message = null;
+		}
+	}
+
+	private async Task SavePlayer()
+	{
+		// Validate jersey number range
+		if (currentPlayer.JerseyNumber < 0 || currentPlayer.JerseyNumber > 99)
+		{
+			message = "Jersey number must be between 0 and 99.";
+			messageIsSuccess = false;
+			return;
+		}
+
+		// Validate required fields
+		if (string.IsNullOrWhiteSpace(currentPlayer.Name))
+		{
+			message = "Player name is required.";
+			messageIsSuccess = false;
+			return;
+		}
+
+		currentPlayer.Name = currentPlayer.Name.Trim();
+		currentPlayer.IsActive = true;
+
+		if (currentPlayer.Id == 0)
+			Db.Players.Add(currentPlayer);
+		else
+		{
+			Db.Players.Attach(currentPlayer);
+			Db.Entry(currentPlayer).State = EntityState.Modified;
+		}
+		await Db.SaveChangesAsync();
+
+		message = isEditMode ? "Player updated." : "Player added.";
+		messageIsSuccess = true;
+
+		CancelEdit();
+		await LoadPlayers();
+	}
+
+	private async Task DeletePlayer(int id)
+	{
+		// In Blazor, we can't use window.confirm directly in @onclick
+		// For now, we'll delete directly (can enhance with modal later)
+		var player = await Db.Players.FindAsync(id);
+		if (player != null)
+		{
+			player.IsActive = false;
+			await Db.SaveChangesAsync();
+		}
+		message = "Player removed from roster.";
+		messageIsSuccess = true;
+		await LoadPlayers();
+	}
+
+	private void CancelEdit()
+	{
+		currentPlayer = new Player { Name = "", Position = "" };
+		isEditMode = false;
+		message = null;
+	}
+}
