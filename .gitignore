@@ -1,9 +1,100 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
+﻿# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
 
-/.vs
-/bin
-/obj
-/.idea
-/WebFormsDemo/.vs
+# Build outputs
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# ASP.NET WebForms / Web site publish output
+publish/
+*.Publish.xml
+*.pubxml
+*.pubxml.user
+PublishProfiles/
+
+# ASP.NET App_Data (local databases, uploaded files)
+App_Data/
+
+# NuGet packages
+packages/
+*.nupkg
+*.snupkg
+!**/[Pp]ackages/build/
+
+# NuGet v3+
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# MSBuild
+*.log
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+*.trx
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Crash dumps
+*.mdmp
+*.dmp
+
+# Compiled binary
+*.pdb
+*.ilk
+*.meta
+*.aps
+*.ncb
+*.sdf
+*.cachefile
+*.opendb
+*.opensdf
+
+# StyleCop
+StyleCopReport.xml
+
+# Microsoft Azure
+csx/
+*.azurePubxml
+*.publishsettings
+
+# Secrets & local config overrides
+Web.Debug.config
+Web.Release.config
+*.local.config
+appSettings.*.json
+secrets.json
